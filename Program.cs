@@ -53,7 +53,20 @@ app.UseCors("AllowAll");
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
-    db.Database.EnsureCreated();
+    // Create Users table if it doesn't exist (works even if other tables exist)
+    var createTableSql = @"
+        CREATE TABLE IF NOT EXISTS ""Users"" (
+            ""Id"" SERIAL PRIMARY KEY,
+            ""Email"" VARCHAR(255) NOT NULL,
+            ""PasswordHash"" TEXT NOT NULL,
+            ""FullName"" VARCHAR(255),
+            ""CreatedAt"" TIMESTAMP NOT NULL,
+            ""LastLoginAt"" TIMESTAMP,
+            ""IsActive"" BOOLEAN NOT NULL
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Users_Email"" ON ""Users"" (""Email"");
+    ";
+    db.Database.ExecuteSqlRaw(createTableSql);
 }
 
 // Routes
@@ -147,3 +160,4 @@ static string ConvertUriToNpgsql(string uriString)
 
     return connectionString;
 }
+
