@@ -11,7 +11,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Database
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? builder.Configuration["DATABASE_URL"];
 
 if (!string.IsNullOrEmpty(connectionString))
@@ -19,8 +19,7 @@ if (!string.IsNullOrEmpty(connectionString))
     // Convert Railway/Neon URI to connection string if needed
     if (connectionString.StartsWith("postgres://") || connectionString.StartsWith("postgresql://"))
     {
-        var uri = new Uri(connectionString);
-        connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={uri.UserInfo.Split(':')[0]};Password={uri.UserInfo.Split(':')[1]};SSL Mode=Require;Trust Server Certificate=true";
+        connectionString = ConvertUriToNpgsql(connectionString);
     }
     builder.Services.AddDbContext<AuthDbContext>(options =>
         options.UseNpgsql(connectionString));
@@ -127,3 +126,24 @@ app.MapGet("/auth/validate", (HttpContext context) =>
 
 app.Run();
 
+// Convert PostgreSQL URI to Npgsql key-value format (same as TodoApi)
+static string ConvertUriToNpgsql(string uriString)
+{
+    // Remove query parameters for parsing
+    var uriWithoutQuery = uriString.Split('?')[0];
+    var uri = new Uri(uriWithoutQuery);
+    var userInfo = uri.UserInfo.Split(':');
+
+    // Default to port 5432 if not specified
+    var port = uri.Port > 0 ? uri.Port : 5432;
+
+    var connectionString = $"Host={uri.Host};Port={port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]}";
+
+    // Add SSL mode from query string if present
+    if (uriString.Contains("sslmode=require"))
+    {
+        connectionString += ";SSL Mode=Require;Trust Server Certificate=true";
+    }
+
+    return connectionString;
+}
