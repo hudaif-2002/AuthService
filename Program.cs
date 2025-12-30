@@ -17,7 +17,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 if (!string.IsNullOrEmpty(connectionString))
 {
     // Convert Railway/Neon URI to connection string if needed
-    if (connectionString.StartsWith("postgres://"))
+    if (connectionString.StartsWith("postgres://") || connectionString.StartsWith("postgresql://"))
     {
         var uri = new Uri(connectionString);
         connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={uri.UserInfo.Split(':')[0]};Password={uri.UserInfo.Split(':')[1]};SSL Mode=Require;Trust Server Certificate=true";
@@ -126,3 +126,4 @@ app.MapGet("/auth/validate", (HttpContext context) =>
 });
 
 app.Run();
+
